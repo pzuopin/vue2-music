@@ -37,6 +37,7 @@ Vue.config.debug = true
 
 new Vue({
 	router,
+    store,
 	el: '#app',
 	render: h => h(App)
 })

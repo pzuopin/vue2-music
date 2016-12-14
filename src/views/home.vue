@@ -1,36 +1,32 @@
 <template>
 	<div id="main">
-		<header id="header">
-			<img src="../assets/images/music.png" class="music btn">
-			<input type="text" class="searchInput" v-model.trim="searchParams.key" placeholder="搜索音乐、歌手、歌词">
-			<img src="../assets/images/search2.png" class="search btn" 
-				@click="search"
-				v-show="searchList.length === 0">
+		<header class="header" :class="{headerBg: true}">
+			<!-- <img src="../assets/images/music.png" class="music btn"> -->
+			<input type="text" class="searchInput" placeholder="搜索音乐、歌手、歌词" 
+				v-model.trim="searchParams.key"
+				@focus="search">
 			<img src="../assets/images/cancel.png" class="cancel btn"
 				@click="cancel" 
 				v-show="searchList.length > 0">
 		</header>
 		<ul class="searchList" v-show="searchList.length > 0">
-			<li class="searchItem" v-for="item in searchList">
+			<li class="searchItem" v-for="item in searchList" @click="play(item)">
 				<div class="song searchContent">{{item.name}}</div>
 				<div class="singer searchContent">{{item.singer}}</div>
 			</li>
 		</ul>
-		<div class="hotTop" v-if="searchList.length === 0">
-			<h2 class="title">
-				热门榜单
-			</h2>
-			<ul class="hotList">
-				<li class="hot" v-for="item in topList">
-					<img :src="item.picUrl" alt="item.topTitle">
-				</li>
-			</ul>
+		<div id="playerContainer">
+			<div class="player" 
+				:class="{playerPaused: !isPlaying, playerRunning: isPlaying}"
+				@click="pause"></div>
+			<img src="../assets/images/stick.png" class="stick" :class="{stickUp: !isPlaying}">
 		</div>
-		<audio src="" controls></audio>
+		<audio id="audio" :src="audioSrc" controls autoplay loop></audio>
 	</div>
 </template>
 
 <script>
+	import {mapState, mapGetters, mapActions} from 'vuex'
 	export default {
 		data() {
 			return {
@@ -47,29 +43,24 @@
 					platform:'yqq',
 					needNewCode:0,
 				},
-
-				// 榜单参数
-				topParams: {
-					format:'jsonp',
-					g_tk:5381,
-					uin:0,
-					format:'jsonp',
-					inCharset:'utf-8',
-					outCharset:'utf-8',
-					notice:0,
-					platform:'h5',
-					needNewCode:1,
-					_:1476804577179,
-				},
-
-				// 榜单列表
-				topList: [],
-				searchList: []
+				searchList: [],			// 搜索结果
+				isPlaying: true,		// 是否正在播放
 			}
 		},
 
-		created() {
-			this.getTop()
+		computed: {
+			...mapState(['music']),
+			...mapGetters(['audioSrc'])
+		},
+
+		watch: {
+			'searchParams.key': function(newVal, oldVal) {
+				if (newVal) {
+					this.search()
+				} else {
+					this.searchList = []
+				}
+			}
 		},
 
 		methods: {
@@ -82,18 +73,31 @@
 				})
 			},
 
-			// 获取榜单
-			getTop() {
-				this.$http.jsonp('http://c.y.qq.com/v8/fcg-bin/fcg_myqq_toplist.fcg', {params: this.topParams, jsonp: 'jsonpCallback'}).then((response) => {
-					this.topList = response.data.data.topList
-				})
-			},
-
 			// 取消
 			cancel() {
 				this.searchList = []
 				this.searchParams.key = ''
-			}
+			},
+
+			// 暂停歌曲
+			pause() {
+				const audio = document.getElementById('audio')
+				if (audio.paused) {
+					audio.play()
+					this.isPlaying = true
+				} else {
+					audio.pause()
+					this.isPlaying = false
+				}
+			},
+
+			// 播放该歌曲
+			play(item) {
+				this.PLAY(item)
+				this.searchList = []
+			},
+
+			...mapActions(['PLAY'])
 		}
 	}
 </script>
@@ -101,11 +105,13 @@
 <style lang="less" scoped>
 	#main{
 		width: 100%;
+		height: 100%;
+		box-sizing: border-box;
 		padding-top: 1.466667rem;
 		background-color: #fff;
 	}
 
-	#header{
+	.header{
 		position: fixed;
 		top: 0;
 		left: 0;
@@ -127,7 +133,7 @@
 			border-radius: 0.066667rem;
 			border: none;
 			outline: none;
-			color: #d1d1d3;
+			// color: #d1d1d3;
 		}
 
 		.btn{
@@ -147,13 +153,22 @@
 		}
 	}
 
+	.headerBg{
+		background-color: #000;
+	}
+
 	.searchList{
-		width: 90%;
-		margin: 0 auto;
+		position: fixed;
+		top: 1.466667rem;
+		left: 50%;
+		transform: translate3d(-50%, 0 , 0);
+		z-index: 999;
+		width: 100%;
 		background-color: #fff;
 
 		.searchItem{
 			border-bottom: 1px solid #d1d1d3;
+			padding: 0.066667rem 0.4rem;
 		}
 
 		.searchContent{
@@ -174,6 +189,58 @@
 			color: #454646;
 			font-size: 0.346667rem;
 		}
+	}
+
+	#playerContainer{
+		position: relative;
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(top, #000, #bebebe, #000);
+
+		.player{
+			position: absolute;
+			width: 4.266667rem;
+			height: 4.266667rem;
+			left: 50%;
+			top: 50%;
+			margin-left: -3.013335rem;
+			margin-top: -3.013335rem;
+			border: 0.88rem solid #242424;
+			border-radius: 50%;
+			background: url(../assets/images/cover.jpg) center no-repeat;
+			background-size: 5rem;
+			animation: circle 2s infinite linear;
+		}
+
+		.playerPaused{
+			-webkit-animation-play-state: paused;
+		}
+
+		.playerRunning{
+			-webkit-animation-play-state: running;
+		}
+
+		.stick{
+			position: absolute;
+			top: 18%;
+			left: 46%;
+			width: 2.0rem;
+			transform-origin: 0 0;
+			transition: all .5s;
+		}
+	}
+
+	.stickUp{
+		transform: rotate(-15deg);
+	}
+
+	@-webkit-keyframes circle{
+		0%{transform: rotate(0deg);}
+		100%{transform: rotate(-360deg);}
+	}
+
+	#audio{
+		display: none;
 	}
 
 	.title{

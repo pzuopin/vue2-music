@@ -1,36 +1,34 @@
 import Vue from 'vue'
 
 export default {
-	state: {
-
+    state: {
+        song: {
+            docid: "1603029554388155680",
+            id: "102391966",
+            mid: "000M3yim4cbxkc",
+            name: "你离开了南京，从此没有人和我说话",
+            singer: "李志"
+        }
     },
-	mutations: {
+    getters: {
+        audioSrc: state => {
+            return `http://ws.stream.qqmusic.qq.com/${state.song.id}.m4a?fromtag=46`
+        }
+    },
+    mutations: {
         /**
-         * 登录成功
+         * 播放该歌曲
          * 
          * @param {Object} state
          * @param {Object} qjUser
          */
-        LOGIN(state, qjUser) {
-            localStorage.setItem('qjUser', JSON.stringify(qjUser))
-            Object.assign(state, qjUser)
+        PLAY(state, song) {
+            state.song = song
         },
-        /**
-         * 退出登录
-         * 
-         * @param {Object} state
-         */
-        LOGOUT(state) {
-            localStorage.removeItem('qjUser')
-            Object.keys(state).forEach(k => Vue.delete(state, k))
-        }
     },
     actions: {
-        LOGIN({commit}, qjUser) {
-            commit('LOGIN', qjUser)
+        PLAY({commit}, song) {
+            commit('PLAY', song)
         },
-        LOGOUT({commit}) {
-            commit('LOGOUT')
-        }
     }
 }
